@@ -6,10 +6,10 @@ var mysql = require('mysql');
 // for elastic search connection
 
 
-var client = new elasticsearch.Client({ hosts: ['https://vpc-es-enablement-prod-new-d26vsrhl3dcz67u3swbpwxvpnu.eu-west-1.es.amazonaws.com'] });
+var client = new elasticsearch.Client({ hosts: [''] });
 const retryOperation = retry.operation({
         retries: 3, // Number of times to retry
-        factor: 1, // Factor to increase the delay between retries
+        factor: 1, // Factor to increase the delay between retries in sec
         minTimeout: 10000, // Minimum delay between retries in milliseconds
       });
       
@@ -42,7 +42,7 @@ async function checkElasticConnection(retryOperation)
 
 // creating mysql connection
 var conn = mysql.createConnection({
-    host: "sc-prod-database.mysql.database.azure.com",
+    host: "",
     user: "bksfipnb",
     password: "0_AH96D6oduzmFcU",
     database: "smartcosmos"
