@@ -8,51 +8,71 @@ var mysql = require('mysql');
 
 var client = new elasticsearch.Client({ hosts: [''] });
 const retryOperation = retry.operation({
-        retries: 3, // Number of times to retry
-        factor: 1, // Factor to increase the delay between retries in sec
-        minTimeout: 10000, // Minimum delay between retries in milliseconds
-      });
-      
-      // Attempt the connection using the retry operation
-async function checkElasticConnection(retryOperation)
-{
-            retryOperation.attempt((currentAttempt) => {
+    retries: 3, // Number of times to retry
+    factor: 1, // Factor to increase the delay between retries in sec
+    minTimeout: 10000, // Minimum delay between retries in milliseconds
+});
 
-                console.log(`Connecting to Elasticsearch. Attempt ${currentAttempt}...`);
-                client.ping()
-                    .then(() => {
-                        console.log('Connected to Elasticsearch!');
-                    })
-                    .catch((err) => {
-                        console.error(`Failed to connect to Elasticsearch: ${err.message}`);
-                        if (currentAttempt === 3) {
-                            console.log("Error in connection establishing from elastic search");
-                            return;
-                        }
-                        if (retryOperation.retry(err)) {
-                            console.log(`Retrying connection after ${retryOperation._timeouts[retryOperation._timeouts.length - 1]} ms...`);
-                        } else {
+// Attempt the connection using the retry operation
+async function checkElasticConnection(retryOperation) {
+    retryOperation.attempt((currentAttempt) => {
 
-                            console.error(`Failed to connect to Elasticsearch after ${currentAttempt} attempts.`);
-                        }
-                    });
+        console.log(`Connecting to Elasticsearch. Attempt ${currentAttempt}...`);
+        client.ping()
+            .then(() => {
+                console.log('Connected to Elasticsearch!');
+            })
+            .catch((err) => {
+                console.error(`Failed to connect to Elasticsearch: ${err.message}`);
+                if (currentAttempt === 3) {
+                    console.log("Error in connection establishing from elastic search");
+                    return;
+                }
+                if (retryOperation.retry(err)) {
+                    console.log(`Retrying connection after ${retryOperation._timeouts[retryOperation._timeouts.length - 1]} ms...`);
+                } else {
 
+                    console.error(`Failed to connect to Elasticsearch after ${currentAttempt} attempts.`);
+                }
             });
+
+    });
 }
 
-// creating mysql connection
-var conn = mysql.createConnection({
-    host: "",
-    user: "bksfipnb",
-    password: "0_AH96D6oduzmFcU",
-    database: "smartcosmos"
-});
+// mongoes connection 
+async function newProdConnection(mongoose) {
+    try {
+        //let url = 'mongodb://solution-mongo:av3BOKETiH4uMxkl9MWlN6aub0vPydYPvYltMi7Kif6ZBgob2VNzE4dxymqFdF7b1sxAJfpzrjfYACDbgPYbuA==@solution-mongo.mongo.cosmos.azure.com:10255/smartcosmos-?ssl=true';
+        let url = '';
+        var newProd = mongoose.createConnection();
+        await newProd.openUri(url);
+        newProd.on('error', console.error.bind(console, 'connection error:'));
+        return newProd;
+    } catch (error) {
+        console.log(`\n\n\nSomething went wrong while connecting with MongoDB newProdConnection\n\n\n`, error.meggage);
 
-conn.connect(function (err) {
-    if (err) throw err;
-    console.log("Connected!");
-});
- 
+    }
+}
+
+
+// creating mysql connection with new production 
+async function newProdMysqlConnection() {
+    var conn = mysql.createConnection({
+        host: "",
+        user: "bksfipnb",
+        password: "0_AH96D6oduzmFcU",
+        database: "smartcosmos"
+    });
+
+    conn.connect( (err)=> {
+        if (err) throw err;
+        console.log("Connected!");
+        return conn;
+    });
+    
+}
+
+
 
 console.log("Started the Script>>>>>>>>>>>>>>>>>>")
 
@@ -67,8 +87,8 @@ const lowercaseKeys = obj =>
 // c
 var dataHashMap = new Map();
 var deviceHashMap = new Map();
-deviceHashMap.set('c2107b22-b02e-45a7-b126-89b65b054ef6','b5b32b82-5da0-41c7-9488-414c8e06a711||Denso Device')
-deviceHashMap.set('80a2b0ea-2915-42d1-9f7d-6cc88d6fa269','1ee5fa16-62ac-4003-9804-11468a07d149||Denso Device')
+deviceHashMap.set('c2107b22-b02e-45a7-b126-89b65b054ef6', 'b5b32b82-5da0-41c7-9488-414c8e06a711||Denso Device')
+deviceHashMap.set('80a2b0ea-2915-42d1-9f7d-6cc88d6fa269', '1ee5fa16-62ac-4003-9804-11468a07d149||Denso Device')
 
 // adding tenant id Mapping
 dataHashMap.set('86904681-eaa5-4b9e-aa49-6b6c4959481c', 'c2107b22-b02e-45a7-b126-89b65b054ef6');
@@ -224,242 +244,236 @@ async function elasticSearchreadData(connection, tenantId, opTime) {
 }
 
 // creating data for mongoDB insertion
-async function dataFormator(data,dataHashMap,productHashMap,deviceHashMap)
-{               
-                let rawProductData
-                let productId 
-                let productUPC
-                let id  
-                let url
-                let type
-                let barcode ={}
-                let qrcode ={}
-                let association = [];
-                let encode_ = [];
-                let addInput_ = [];
-                // getting tenant Id
-                let tenantId = dataHashMap.get(data.tenantId);
-                if (tenantId === undefined) {
-                    tenantId=null 
-                }
-                // data trim 
-                let dataTrim=data.metadata.product;
-                
-                if(dataTrim!==undefined && dataTrim!==null)
-                {   
-                    rawProductData = lowercaseKeys(dataTrim)
-                }
+async function dataFormator(data, dataHashMap, productHashMap, deviceHashMap) {
+    let rawProductData
+    let productId
+    let productUPC
+    let id
+    let url
+    let type
+    let barcode = {}
+    let qrcode = {}
+    let association = [];
+    let encode_ = [];
+    let addInput_ = [];
+    // getting tenant Id
+    let tenantId = dataHashMap.get(data.tenantId);
+    if (tenantId === undefined) {
+        tenantId = null
+    }
+    // data trim 
+    let dataTrim = data.metadata.product;
 
-                // getting product id from product hashMap    
-                if(rawProductData.upc!==undefined)
-                {
-                 productId = productHashMap.get(rawProductData.upc);
-                 productUPC=rawProductData.upc
-                }
-                if (productId === undefined) {
-                    productId = productHashMap.get(rawProductData?.sku);
-                    if(productId===undefined) 
-                         {   productId=null; }   
-                    productUPC=rawProductData.sku
-                }
+    if (dataTrim !== undefined && dataTrim !== null) {
+        rawProductData = lowercaseKeys(dataTrim)
+    }
 
-                // getting processId from dataHashMap
-                let processId = dataHashMap.get(data.processId);
-                if(processId===undefined)
-                {
-                    processId=null
-                }
-                // getting userid and user Name from dataHashMap
-                let userTemp = dataHashMap.get(data.lastOperator.id);
-                let userData=userTemp.split('||');
-                let userId=userData[0]
-                let userName=userData[1]
+    // getting product id from product hashMap    
+    if (rawProductData.upc !== undefined) {
+        productId = productHashMap.get(rawProductData.upc);
+        productUPC = rawProductData.upc
+    }
+    if (productId === undefined) {
+        productId = productHashMap.get(rawProductData?.sku);
+        if (productId === undefined) { productId = null; }
+        productUPC = rawProductData.sku
+    }
 
-                // getting device data
-               let deviceData_= deviceHashMap.get(tenantId)
-               let deviceData=deviceData_.split('||'); 
-               let status=data.status;
-               
-               if(data.metadata.nfc.length > 0) {
-                url = data.metadata?.nfc[0].url
-                id = data.metadata?.nfc[0].id
-                type = "nfc"
-                }
-                else if (data.metadata.uhf.length > 0) {
-                    url = data.metadata?.uhf[0].url
-                    id = data.metadata?.uhf[0].id
-                    type = "uhf"
-                } 
-                else if (data.metadata.barcode.length > 0) {
-                    url = data.metadata?.barcode[0].url
-                    id = data.metadata?.barcode[0].id
-                    type = "barcode"
-                } else {
-                    url = data.metadata?.qr[0].url
-                    id = data.metadata?.qr[0].id
-                    type = "qr"
-                }
-                // updating association info
-                if (data?.metadata?.nfc?.length > 0) {
-                    for (let i = 0; i < data?.metadata?.nfc?.length; i++) {
+    // getting processId from dataHashMap
+    let processId = dataHashMap.get(data.processId);
+    if (processId === undefined) {
+        processId = null
+    }
+    // getting userid and user Name from dataHashMap
+    let userTemp = dataHashMap.get(data.lastOperator.id);
+    let userData = userTemp.split('||');
+    let userId = userData[0]
+    let userName = userData[1]
 
-                        if (data?.metadata?.nfc[i].key !== 'ENCODE_NFC') {
-                            let nfc_ = {
-                                code: data?.metadata?.nfc[i].id,
-                                type: data?.metadata?.nfc[i].key,
-                                metaInfo: { 'url': data?.metadata?.nfc[i].url }
-                            }
-                            association.push(nfc_);
-                        }
+    // getting device data
+    let deviceData_ = deviceHashMap.get(tenantId)
+    let deviceData = deviceData_.split('||');
+    let status = data.status;
 
-                        if (data?.metadata?.nfc[i].key === 'ENCODE_NFC') {
-                            let encode_nfc = {
-                                code: data?.metadata?.nfc[i].id,
-                                type: data?.metadata?.nfc[i].key,
-                                metaInfo: { 'url': data?.metadata?.nfc[i].url }
-                            }
-                            encode_.push(encode_nfc);
-                        }
-                    }
-                }
-                if (data?.metadata?.uhf?.length > 0) {
-                    for (let i = 0; i < data?.metadata?.uhf.length; i++) {
-                        if (data?.metadata?.uhf[i].key !== 'ENCODE_UHF') {
-                            let uhf_ = {
-                                code: data?.metadata?.uhf[i].epc,
-                                type: data?.metadata?.uhf[i].key,
-                                metaInfo: { 'tid': data?.metadata?.uhf[i].tid }
-                            }
-                            association.push(uhf_);
-                        }
-                        if (data?.metadata?.uhf[i].key === 'ENCODE_UHF') {
-                            let encode_uhf = {
-                                code: data?.metadata?.uhf[i].epc,
-                                type: data?.metadata?.uhf[i].key,
-                                metaInfo: { 'tid': data?.metadata?.uhf[i].tid }
-                            }
-                            encode_.push(encode_uhf);
-                        }
-                    }
-                }
-                if (data?.metadata?.barcode?.length > 0) {
-                    // for barcode
-                    for (let i = 0; i < data?.metadata?.barcode.length; i++) {
-                        if (data?.metadata?.barcode[i].key!== '') {
-                            let barcode_ = {
-                                code: data?.metadata?.barcode[i].code,
-                                type: data?.metadata?.barcode[i].key,
-                                metaInfo:
-                                {
-                                    subtype: data?.metadata?.barcode[i].subtype,
-                                    type: data?.metadata?.barcode[i].type,
-                                }
-                            }
-                            association.push(barcode_);
-                        }
-                    }
-                }
-                if (data?.metadata?.qrcode?.length > 0) {
-                    for (let i = 0; i < data?.metadata?.qrcode?.length; i++) {
-                        if (data?.metadata?.qrcode[i].key!== '') {
-                            let qrcode_ = {
-                                code: data?.metadata?.qrcode[i].code,
-                                type: data?.metadata?.qrcode[i].key,
-                                metaInfo:
-                                {
-                                    subtype: data?.metadata?.qrcode[i].subtype,
-                                    type: data?.metadata?.qrcode[i].type,
-                                }
-                            }
-                            association.push(qrcode_);
+    if (data.metadata.nfc.length > 0) {
+        url = data.metadata?.nfc[0].url
+        id = data.metadata?.nfc[0].id
+        type = "nfc"
+    }
+    else if (data.metadata.uhf.length > 0) {
+        url = data.metadata?.uhf[0].url
+        id = data.metadata?.uhf[0].id
+        type = "uhf"
+    }
+    else if (data.metadata.barcode.length > 0) {
+        url = data.metadata?.barcode[0].url
+        id = data.metadata?.barcode[0].id
+        type = "barcode"
+    } else {
+        url = data.metadata?.qr[0].url
+        id = data.metadata?.qr[0].id
+        type = "qr"
+    }
+    // updating association info
+    if (data?.metadata?.nfc?.length > 0) {
+        for (let i = 0; i < data?.metadata?.nfc?.length; i++) {
 
-                        }
-                    }
+            if (data?.metadata?.nfc[i].key !== 'ENCODE_NFC') {
+                let nfc_ = {
+                    code: data?.metadata?.nfc[i].id,
+                    type: data?.metadata?.nfc[i].key,
+                    metaInfo: { 'url': data?.metadata?.nfc[i].url }
                 }
-                if (data?.metadata?.input?.length > 0) {
-                    for (let i = 0; i < data?.metadata?.input.length; i++) {
-                        if (data?.metadata?.input[i].key !== '') {
-                            let input_ = {
-                                key: data?.metadata?.input[i].key,
-                                value: data?.metadata?.input[i].value,
-                            }
-                            addInput_.push(input_);
-                        }
-                    }
-                   
-
-                }
-              
-                let additionalData = {
-                    association: association,
-                    addInput: addInput_,
-                    encode: encode_
-                }
-                
-
-               // getting site detail
-               let siteData_=deviceHashMap.get(data.factory.id)
-               let siteData=siteData_.split('||');
-                
-               let enaleObj = {
-                    tenantId: tenantId,
-                    userId: userId,
-                    userName: userName,
-                    processId: processId,
-                    processType: 'Digitization',
-                    productId: productId,
-                    productExperienceId: rawProductData?.experienceid,
-                    productExperienceStudioId: rawProductData?.experiencestudioid,
-                    productExperienceTenantId: rawProductData?.experiencetenantid,
-                    productUPC: productUPC,
-                    status: status.toLowerCase(),
-                    deviceId: deviceData[0],
-                    deviceName: deviceData[1],
-                    siteId: siteData[0],
-                    siteName:siteData[1],
-                    zoneId: siteData[2],
-                    zoneName: siteData[3],
-                    additionalData,
-                    diId: id,
-                    diInfo: data?.metadata,
-                    primaryURL: url,
-                    primaryId: id,
-                    primaryIdType: type,
-                    productDescription: rawProductData?.description,
-                    count: '',
-                    chunkIdentifier: '',
-                    finalChunk: '',
-                    fileUrl: '',
-                    operationTime: new Date(data?.lastOperationTimestamp),
-                    createdAt:new Date(data?.activationTimestamp),
-                    lastUpdatedAt : new Date(data?.activationTimestamp),
+                association.push(nfc_);
             }
-                return enaleObj;
+
+            if (data?.metadata?.nfc[i].key === 'ENCODE_NFC') {
+                let encode_nfc = {
+                    code: data?.metadata?.nfc[i].id,
+                    type: data?.metadata?.nfc[i].key,
+                    metaInfo: { 'url': data?.metadata?.nfc[i].url }
+                }
+                encode_.push(encode_nfc);
+            }
+        }
+    }
+    if (data?.metadata?.uhf?.length > 0) {
+        for (let i = 0; i < data?.metadata?.uhf.length; i++) {
+            if (data?.metadata?.uhf[i].key !== 'ENCODE_UHF') {
+                let uhf_ = {
+                    code: data?.metadata?.uhf[i].epc,
+                    type: data?.metadata?.uhf[i].key,
+                    metaInfo: { 'tid': data?.metadata?.uhf[i].tid }
+                }
+                association.push(uhf_);
+            }
+            if (data?.metadata?.uhf[i].key === 'ENCODE_UHF') {
+                let encode_uhf = {
+                    code: data?.metadata?.uhf[i].epc,
+                    type: data?.metadata?.uhf[i].key,
+                    metaInfo: { 'tid': data?.metadata?.uhf[i].tid }
+                }
+                encode_.push(encode_uhf);
+            }
+        }
+    }
+    if (data?.metadata?.barcode?.length > 0) {
+        // for barcode
+        for (let i = 0; i < data?.metadata?.barcode.length; i++) {
+            if (data?.metadata?.barcode[i].key !== '') {
+                let barcode_ = {
+                    code: data?.metadata?.barcode[i].code,
+                    type: data?.metadata?.barcode[i].key,
+                    metaInfo:
+                    {
+                        subtype: data?.metadata?.barcode[i].subtype,
+                        type: data?.metadata?.barcode[i].type,
+                    }
+                }
+                association.push(barcode_);
+            }
+        }
+    }
+    if (data?.metadata?.qrcode?.length > 0) {
+        for (let i = 0; i < data?.metadata?.qrcode?.length; i++) {
+            if (data?.metadata?.qrcode[i].key !== '') {
+                let qrcode_ = {
+                    code: data?.metadata?.qrcode[i].code,
+                    type: data?.metadata?.qrcode[i].key,
+                    metaInfo:
+                    {
+                        subtype: data?.metadata?.qrcode[i].subtype,
+                        type: data?.metadata?.qrcode[i].type,
+                    }
+                }
+                association.push(qrcode_);
+
+            }
+        }
+    }
+    if (data?.metadata?.input?.length > 0) {
+        for (let i = 0; i < data?.metadata?.input.length; i++) {
+            if (data?.metadata?.input[i].key !== '') {
+                let input_ = {
+                    key: data?.metadata?.input[i].key,
+                    value: data?.metadata?.input[i].value,
+                }
+                addInput_.push(input_);
+            }
+        }
+
+
+    }
+
+    let additionalData = {
+        association: association,
+        addInput: addInput_,
+        encode: encode_
+    }
+
+
+    // getting site detail
+    let siteData_ = deviceHashMap.get(data.factory.id)
+    let siteData = siteData_.split('||');
+
+    let enaleObj = {
+        tenantId: tenantId,
+        userId: userId,
+        userName: userName,
+        processId: processId,
+        processType: 'Digitization',
+        productId: productId,
+        productExperienceId: rawProductData?.experienceid,
+        productExperienceStudioId: rawProductData?.experiencestudioid,
+        productExperienceTenantId: rawProductData?.experiencetenantid,
+        productUPC: productUPC,
+        status: status.toLowerCase(),
+        deviceId: deviceData[0],
+        deviceName: deviceData[1],
+        siteId: siteData[0],
+        siteName: siteData[1],
+        zoneId: siteData[2],
+        zoneName: siteData[3],
+        additionalData,
+        diId: id,
+        diInfo: data?.metadata,
+        primaryURL: url,
+        primaryId: id,
+        primaryIdType: type,
+        productDescription: rawProductData?.description,
+        count: '',
+        chunkIdentifier: '',
+        finalChunk: '',
+        fileUrl: '',
+        operationTime: new Date(data?.lastOperationTimestamp),
+        createdAt: new Date(data?.activationTimestamp),
+        lastUpdatedAt: new Date(data?.activationTimestamp),
+    }
+    return enaleObj;
 }
 
 
 // for headers count
 
-async function sendingDataToDashBoard(data)
-{
-        await fetch('https://portal.lifecycles.io/api/v1/report/enablement', {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'service-token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.wSYzQkeEsKSbAAVJtVMjodiKPtwOiM6UjulQWyz9qNE'
-            },
-            body: JSON.stringify({
-                tenantId: data.tenantId,
-                siteId: data.siteId,
-                processId: data.processId,
-                upc: data.productUPC,
-                status: data.status,
-                type: 'unsecure',
-                beforeStatus: '',
-                operationTime: data.operationTime
-            })
-        }).then(response => response.json());
+async function sendingDataToDashBoard(data) {
+    await fetch('https://portal.lifecycles.io/api/v1/report/enablement', {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'service-token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.wSYzQkeEsKSbAAVJtVMjodiKPtwOiM6UjulQWyz9qNE'
+        },
+        body: JSON.stringify({
+            tenantId: data.tenantId,
+            siteId: data.siteId,
+            processId: data.processId,
+            upc: data.productUPC,
+            status: data.status,
+            type: 'unsecure',
+            beforeStatus: '',
+            operationTime: data.operationTime
+        })
+    }).then(response => response.json());
 }
 
 const delay = (delayInms) => {
@@ -469,74 +483,69 @@ const delay = (delayInms) => {
 }
 
 
-async function checkConnection()
-{
+async function main() {
+    // check elastic connection
     await checkElasticConnection(retryOperation);
+
     // new prod string url mongos connection
-    mongoose.connect('mongodb://solution-mongo:av3BOKETiH4uMxkl9MWlN6aub0vPydYPvYltMi7Kif6ZBgob2VNzE4dxymqFdF7b1sxAJfpzrjfYACDbgPYbuA==@solution-mongo.mongo.cosmos.azure.com:10255/smartcosmos-?ssl=true', { retryWrites: false });
-    var mongoDb = mongoose.connection;
-    
-    mongoDb.on('error', console.error.bind(console, 'connection error:'));
-    mongoDb.once('open', async function () {
-        console.log("Script Start >>>>>>>>>>>>>>>>>>>>>>" )
-       
-        let tenantArray = ['86904681-eaa5-4b9e-aa49-6b6c4959481c', 'b529be14-2df8-42bd-806d-3a71d5790298'];
-        for (const tenantId of tenantArray) {
-    
-            let productHashMap = await getProductHashMap(conn, tenantId);
-            let tenantId_ = dataHashMap.get(tenantId);
-            try {
-                // getting last inserted record for particular tenant
-               
-                let lastRecord = await mongoDb.collection("digitizedtags").find({ "tenantId": { $eq: tenantId_ } }).sort({ createdAt: -1 }).limit(1).toArray();
-    
-                for (let tenantData of lastRecord) {
-    
-                    // getting record from elastic search
-                    let rawData = []
-                    let lastOpTime = tenantData.createdAt;
-                    while (true) {
-                        // getting old tenant Id
-                      
-                        rawData = await elasticSearchreadData(client, tenantId, lastOpTime);
-                        await delay(200);
-                        if (rawData.length === 0) { break; }
-                        for (const elasticData of rawData) {
-    
-                            let data = elasticData._source
-                            // calling data formattor
-                            let formatedData = await dataFormator(data, dataHashMap,productHashMap,deviceHashMap);
-    
-                            //inserting into digitizedTags collection
-                            let checkExistence=await mongoDb.collection("digitizedtags").find({diId:formatedData.diId,status:formatedData.status}).limit(1).toArray(); 
-                            if(checkExistence.length===0)
-                            {
-                                 //await mongoDb.collection("digitizedtags").insert(formatedData);
-                                 // calling headers reports
-                                 //sendingDataToDashBoard(formatedData);
-    
-                            }
-                            await delay(200);
-                            lastOpTime = formatedData.createdAt;      
+    let mongoDb = await newProdConnection(mongoose);
+
+    // for mysql connection
+    let mysqlConnection = await newProdMysqlConnection();
+
+    console.log("Script Start >>>>>>>>>>>>>>>>>>>>>>")
+
+    let tenantArray = ['86904681-eaa5-4b9e-aa49-6b6c4959481c', 'b529be14-2df8-42bd-806d-3a71d5790298'];
+    for (const tenantId of tenantArray) {
+
+        let productHashMap = await getProductHashMap(mysqlConnection, tenantId);
+        let tenantId_ = dataHashMap.get(tenantId);
+        try {
+            // getting last inserted record for particular tenant
+
+            let lastRecord = await mongoDb.collection("digitizedtags").find({ "tenantId": { $eq: tenantId_ } }).sort({ createdAt: -1 }).limit(1).toArray();
+
+            for (let tenantData of lastRecord) {
+
+                // getting record from elastic search
+                let rawData = []
+                let lastOpTime = tenantData.createdAt;
+                while (true) {
+                    // getting old tenant Id
+
+                    rawData = await elasticSearchreadData(client, tenantId, lastOpTime);
+                    await delay(200);
+                    if (rawData.length === 0) { break; }
+                    for (const elasticData of rawData) {
+
+                        let data = elasticData._source
+                        // calling data formattor
+                        let formatedData = await dataFormator(data, dataHashMap, productHashMap, deviceHashMap);
+
+                        //inserting into digitizedTags collection
+                        let checkExistence = await mongoDb.collection("digitizedtags").find({ diId: formatedData.diId, status: formatedData.status }).limit(1).toArray();
+                        if (checkExistence.length === 0) {
+                            await mongoDb.collection("digitizedtags").insert(formatedData);
+                            //calling headers reports
+                            sendingDataToDashBoard(formatedData);
+
                         }
+                        await delay(200);
+                        lastOpTime = formatedData.createdAt;
                     }
-                    // to inser in monodb
                 }
-            }
-            catch (err) {
-                console.log("Error during reading Tenant Data ", err)
+                // to inser in monodb
             }
         }
-        console.log("End Of Script>>>>>>>>>>>>>>>>>>>>>>")
-        // end tenant Id array loop
-    
-    })
-
-
-
+        catch (err) {
+            console.log("Error during reading Tenant Data ", err)
+        }
+    }
+    console.log("End Of Script>>>>>>>>>>>>>>>>>>>>>>")
+    // end tenant Id array loop
 }
 
-checkConnection();
+main();
 
 
 
