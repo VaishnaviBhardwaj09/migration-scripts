@@ -45,16 +45,16 @@ async function getCustomerHashMap(connection, batchId) {
         // getting customer details
         let customer = await connection.collection('Customer').find({ "customerId": data.customerId }).toArray();
         let batchObject = {
-            customerName: customer[0].customerName,
-            deliveryDate: data.deliveryDate,
-            deliveryItemName: data.deliveryItemName,
-            deliveryQuantity: data.deliveryQuantity,
-            deliveryQuantityUnit: data.deliveryQuantityUnit,
-            historyReferenceId: data.refOrderItemId,
-            orderId: data.orderId,
-            orderDate: data.orderDate,
-            orderQuantity: data.orderQuantity,
-            orderQuantityUnit: data.orderQuantityUnit,
+            customerName: customer[0]?.customerName,
+            deliveryDate: data?.deliveryDate,
+            deliveryItemName: data?.deliveryItemName,
+            deliveryQuantity: data?.deliveryQuantity,
+            deliveryQuantityUnit: data?.deliveryQuantityUnit,
+            historyReferenceId: data?.refOrderItemId,
+            orderId: data?.orderId,
+            orderDate: data?.orderDate,
+            orderQuantity: data?.orderQuantity,
+            orderQuantityUnit: data?.orderQuantityUnit,
         }
         customerHashMap.set(batchId, batchObject);
 
