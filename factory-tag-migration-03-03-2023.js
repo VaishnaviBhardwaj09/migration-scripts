@@ -38,7 +38,7 @@ async function currentProdConnection(mongoose2) {
 
 // creating customer HashMap
 async function getCustomerHashMap(connection, batchId) {
-    ``
+
     let customerHashMap = new Map();
     let restData = await connection.collection('CustomerBatch').find({ "batchId": batchId }).toArray();
     for (const data of restData) {
@@ -55,6 +55,7 @@ async function getCustomerHashMap(connection, batchId) {
             orderDate: data?.orderDate,
             orderQuantity: data?.orderQuantity,
             orderQuantityUnit: data?.orderQuantityUnit,
+           
         }
         customerHashMap.set(batchId, batchObject);
 
@@ -84,6 +85,7 @@ async function readTagData(currentProdConnection, newProdConnection) {
         console.log(custumerData);
 
         while (true) {
+            
             let localCounter = 0;
             let data_ = await currentProdConnection.collection('Tag').find({ "bId": batchData_[i] }).sort({ ct: 1 }).skip(offset).limit(limit).toArray();
             console.log("Total Record Found For BatchID=>", batchData_[i], "Using Offest ", offset, "Data Found==>", data_.length)
@@ -91,6 +93,10 @@ async function readTagData(currentProdConnection, newProdConnection) {
                 break;
             }
             for (const data of data_) {
+
+                const now = new Date();
+                const utcDatetime = now.toISOString().slice(0, 19) + '.000+00:00';
+
                 let final_data =
                 {
                     batchId: batchData_[i],
@@ -102,11 +108,12 @@ async function readTagData(currentProdConnection, newProdConnection) {
                     deliveryItemName: custumerData?.deliveryItemName,
                     deliveryQuantity: custumerData?.deliveryQuantity,
                     deliveryQuantityUnit: custumerData?.deliveryQuantityUnit,
-                    historyReferenceId: custumerData?.refOrderItemId,
+                    historyReferenceId: custumerData?.historyReferenceId,
                     orderId: custumerData?.orderId,
                     orderDate: custumerData?.orderDate,
                     orderQuantity: custumerData?.orderQuantity,
                     orderQuantityUnit: custumerData?.orderQuantityUnit,
+                    createdAt:new Date(utcDatetime),
                 }
 
                 //  5100
@@ -140,10 +147,11 @@ async function readTagData(currentProdConnection, newProdConnection) {
                 bulkData = [];
                 counter++;
                 localCounter++
+                console.log(bulkData.length ,"<", chunkSize03 ,"&&", data_.length ,"-", localCounter ,">", chunkSize03)
                 await delay(500);
             }
             offset = offset + data_.length;
-            console.log("Total Inserted Records For Batch Id=> ", batchData_[i], "LocalCounter===>", localCounter, " Total Inserted Records==>", counter,  new Date());
+            console.log("Total Inserted Records For Batch Id=> ", batchData_[i], "LocalCounter===>", localCounter, " Total Inserted Records==>", counter, new Date());
             await delay(1000);
 
         }

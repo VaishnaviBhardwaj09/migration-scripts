@@ -64,12 +64,12 @@ async function newProdMysqlConnection() {
         database: "smartcosmos"
     });
 
-    conn.connect( (err)=> {
+    conn.connect((err) => {
         if (err) throw err;
         console.log("Connected!");
-        return conn;
+       
     });
-    
+    return conn;
 }
 
 
@@ -514,7 +514,7 @@ async function main() {
                     // getting old tenant Id
 
                     rawData = await elasticSearchreadData(client, tenantId, lastOpTime);
-                    await delay(200);
+                    
                     if (rawData.length === 0) { break; }
                     for (const elasticData of rawData) {
 
