@@ -143,13 +143,15 @@ async function readTagData(currentProdConnection, newProdConnection) {
 
                 bulkData.push(final_data);
                 // insert into new production DB
-                await newProdConnection.collection('unassignedTagsData').insertMany(bulkData);
+                await newProdConnection.collection('unassignedtagsdatas').insertMany(bulkData);
                 bulkData = [];
                 counter++;
                 localCounter++
                 console.log(bulkData.length ,"<", chunkSize03 ,"&&", data_.length ,"-", localCounter ,">", chunkSize03)
                 await delay(500);
+                
             }
+            
             offset = offset + data_.length;
             console.log("Total Inserted Records For Batch Id=> ", batchData_[i], "LocalCounter===>", localCounter, " Total Inserted Records==>", counter, new Date());
             await delay(1000);

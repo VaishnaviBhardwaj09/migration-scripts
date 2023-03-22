@@ -73,9 +73,9 @@ async function batchInsert(connection, data) {
 async function batchDelete(connection, batchId) {
     try {
         console.log("Batch Id for Deletion : ",batchId)
-        let checkBatch = await connection.collection('unassignedTagsData').find({ batchId: batchId }).toArray();
+        let checkBatch = await connection.collection('unassignedtagsdatas').find({ batchId: batchId }).toArray();
         if (checkBatch.length >0) {
-            await connection.collection('unassignedTagsData').deleteMany({ batchId: batchId });
+            await connection.collection('unassignedtagsdatas').deleteMany({ batchId: batchId });
         }
         return true;
     }
@@ -94,7 +94,7 @@ const delay = (delayInms) => {
 
 async function moveData(connection, data) {
     const { tenantId, tenantName, batchId, tagId } = data;
-    // getting data from unassignedTagsData
+    // getting data from unassignedtagsdatas
     let limit = 5000;
     let offset = 0;
     let bulkData = [];
@@ -110,7 +110,7 @@ async function moveData(connection, data) {
         while (true) {
             
             let localCounter = 0;
-            let responseData = await connection.collection('unassignedTagsData').find({ "batchId": batchId }).sort({ createdAt: 1 }).skip(offset).limit(limit).toArray();
+            let responseData = await connection.collection('unassignedtagsdatas').find({ "batchId": batchId }).sort({ createdAt: 1 }).skip(offset).limit(limit).toArray();
             console.log("Founded Tags Response Batch ID: ",batchId , "Response Count=>",responseData.length)
             if (responseData.length == 0) {
                 // for different date time
@@ -136,9 +136,8 @@ async function moveData(connection, data) {
                 }
                 // calling batch insert function
                 await batchInsert(connection, batchInsertData);
-                // removing data from unassignedTagsData
+                // removing data from unassignedtagsdatas
                 await batchDelete(connection, batchId)
-                return;
                 break;
 
             }
@@ -249,16 +248,16 @@ async function readTags(connection,mysqlConn)
                 break;
             }
             for (const data of responseData) {
-                // checking tagId in unassignedTagsData
+                // checking tagId in unassignedtagsdatas
                  
-                let unassignedTagsData = await connection.collection('unassignedTagsData').find({tagId:data.diId}).toArray();
-                console.log("Founded Tags Response Tag ID: ",data.diId , "Response Count=>",unassignedTagsData.length)
-                if(unassignedTagsData.length>0)
+                let unassignedtagsdatas = await connection.collection('unassignedtagsdatas').find({tagId:data.diId}).toArray();
+                console.log("Founded Tags Response Tag ID: ",data.diId , "Response Count=>",unassignedtagsdatas.length)
+                if(unassignedtagsdatas.length>0)
                 {
                     let moveDataObj=
                     {
                         tenantId:data.tenantId,
-                        batchId:unassignedTagsData[0].batchId,
+                        batchId:unassignedtagsdatas[0].batchId,
                         tenantName:tenantHasMap.get(data.tenantId),
                         tagId:data.diId,
                     }
@@ -266,7 +265,7 @@ async function readTags(connection,mysqlConn)
                     await delay(1000);
                 }
                 localCounter++
-            }
+            }   
             await delay(1000);
             offset=offset+responseData.length;
             console.log("Total Readed Records From DI=> ", localCounter);
@@ -297,7 +296,7 @@ async function updatingStatus(connection)
                 break;
             }
             for (const data of responseData) {
-                // checking tagId in unassignedTagsData
+                // checking tagId in unassignedtagsdatas
                  
                 let digitizedResponse = await connection.collection('digitizedtags').find({diId:data.tagId, status:'enabled'}).toArray();
                 console.log("Tags Found in Digitized Collection: ",data.tagId , "Response Count=>",digitizedResponse.length)
