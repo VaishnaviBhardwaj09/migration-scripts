@@ -186,7 +186,7 @@ async function getProductHashMap(connection, tenantId) {
     var productMap = new Map();
     return new Promise(function (resolve, reject) {
         connection.query(
-            `select upc,name from products where tenantId='${tenantId}'`,
+            `select upc,id from products where tenantId='${tenantId}'`,
             function (err, rows) {
                 if (err) throw err;
                 if (rows.length == 0) {
@@ -514,7 +514,6 @@ async function main() {
                     // getting old tenant Id
 
                     rawData = await elasticSearchreadData(client, tenantId, lastOpTime);
-                    
                     if (rawData.length === 0) { break; }
                     for (const elasticData of rawData) {
 
