@@ -152,7 +152,7 @@ async function moveData(connection, data) {
                 historyReferenceId = '',
                 historyReferenceId = data?.historyReferenceId
                 if (tagId == data.tagId) {
-                    status = 'Active';
+                    status = 'active';
                     isActivated = true;
                 }
                 let dataObject =
