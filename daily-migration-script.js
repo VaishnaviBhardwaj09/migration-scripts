@@ -453,7 +453,7 @@ async function dataFormator(data, dataHashMap, productHashMap, deviceHashMap) {
 }
 
 
-// for headers count
+// for enablement count in header
 
 async function sendingDataToDashBoard(data) {
     await fetch('https://portal.lifecycles.io/api/v1/report/enablement', {

@@ -92,8 +92,8 @@ const delay = (delayInms) => {
 
 }
 
-async function moveData(connection, data) {
-    const { tenantId, tenantName, batchId, tagId } = data;
+async function moveData(connection, enablementdata) {
+    const { tenantId, tenantName, batchId, tagId } = enablementdata;
     // getting data from unassignedtagsdatas
     let limit = 5000;
     let offset = 0;
@@ -136,6 +136,14 @@ async function moveData(connection, data) {
                 }
                 // calling batch insert function
                 await batchInsert(connection, batchInsertData);
+                // updating new tags info to dashboard
+                
+                let objComm=
+                {
+                    tenantId: tenantId,
+                    count: counter,
+                }
+                updateUnusedHeaderCount(objComm);
                 // removing data from unassignedtagsdatas
                 await batchDelete(connection, batchId)
                 break;
@@ -154,6 +162,8 @@ async function moveData(connection, data) {
                 if (tagId == data.tagId) {
                     status = 'Active';
                     isActivated = true;
+                    // sending request for updating enablements count at dashboard
+                    sendingEnablementDataToDashBoard(enablementdata);
                 }
                 let dataObject =
                 {
@@ -260,6 +270,13 @@ async function readTags(connection,mysqlConn)
                         batchId:unassignedtagsdatas[0].batchId,
                         tenantName:tenantHasMap.get(data.tenantId),
                         tagId:data.diId,
+                        siteId: data.siteId,
+                        processId: data.processId,
+                        upc: data.productUPC,
+                        status: data.status,
+                        type: 'unsecure',
+                        beforeStatus: '',
+                        operationTime: data.operationTime
                     }
                     await moveData(connection, moveDataObj)
                     await delay(1000);
@@ -323,13 +340,64 @@ async function updatingStatus(connection)
 
 }
 
+// updating tags info for Enablements counts in header 
+async function sendingEnablementDataToDashBoard(data) {
+    try{
+    await fetch('https://portal.lifecycles.io/api/v1/report/enablement', {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'service-token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.wSYzQkeEsKSbAAVJtVMjodiKPtwOiM6UjulQWyz9qNE'
+        },
+        body: JSON.stringify({
+            tenantId: data.tenantId,
+            siteId: data.siteId,
+            processId: data.processId,
+            upc: data.productUPC,
+            status: data.status,
+            type: 'unsecure',
+            beforeStatus: '',
+            operationTime: data.operationTime
+        })
+    }).then(response => response.json());
+    }
+    catch(error)
+    {
+        console.log("Error in updating sending Enablement Data To DashBoard ",error)
+    }
+}
+// updating tags info for header counts 
+async function updateUnusedHeaderCount(data)
+{
+    try
+    {    
+        await fetch('https://portal.lifecycles.io/api/v1/report/tag', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'service-token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.wSYzQkeEsKSbAAVJtVMjodiKPtwOiM6UjulQWyz9qNE'
+            },
+            body: JSON.stringify({
+                tenantId: data.tenantId,
+                counts: data.count,
+            })
+        }).then(response => response.json());
+    }
+    catch(error)
+    {
+        console.log("Error in updating updateUnusedHeaderCount ",error)
+    }
+}
+
 async function main()
 {
     console.log("In main function")
-
+    // creating mongos connection
     console.log("Creating mongos connection")
     let connection=await Connection(mongoose);
-    
+    // creating mongos connection
     console.log("Creating mysql connection")
     let mysqlConn=await newProdMysqlConnection(mysql);
     
