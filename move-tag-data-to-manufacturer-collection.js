@@ -103,6 +103,8 @@ async function moveData(connection, enablementdata) {
     let chunkSize02 = 200;
     let chunkSize03 = 50;
     let historyReferenceId = '';
+    let secureCount=0;
+    let standardCount=0;
     // create data for batches collection
 
     try {
@@ -137,12 +139,17 @@ async function moveData(connection, enablementdata) {
                 // calling batch insert function
                 await batchInsert(connection, batchInsertData);
                 // updating new tags info to dashboard
-                
+                // updating dashboard unused tags count 
+                let counts = {
+                    secure: secureCount,
+                    standard: standardCount
+                };
                 let objComm=
                 {
-                    tenantId: tenantId,
-                    count: counter,
+                    tenantId: tenantId, 
+                    count: counts,
                 }
+                
                 updateUnusedHeaderCount(objComm);
                 // removing data from unassignedtagsdatas
                 await batchDelete(connection, batchId)
@@ -154,6 +161,16 @@ async function moveData(connection, enablementdata) {
             const now2 = new Date();
             const utcDatetime2 = now2.toISOString().slice(0, 19) + '.000+00:00';
             for (const data of responseData) {
+
+                //check secureCount and standardCount 
+                if(data?.secureKey!==null)
+                {
+                    secureCount++;
+                }
+                else
+                {
+                    standardCount++;
+                }
 
                 let status = 'Inactive';
                 let isActivated = false;

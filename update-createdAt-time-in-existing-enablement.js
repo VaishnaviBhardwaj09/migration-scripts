@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 // creating connection from current production
 async function currentProdConnection(mongoose2) {
 
-    let url = "mongodb://127.0.0.1:27017/smartcosmos_prod?authSource=admin"
+    let url = "mongodb://solution-dev-qamongo:HbylJkfMu8lwRwlAHOWqID9SY256BEnBO9Ulj0awumaJ6VETOOr6cAXu2Od6WQjg5QwOQEzI7ZerACDbyvkF0w==@solution-dev-qamongo.mongo.cosmos.azure.com:10255/smartcosmos_qa?ssl=true&retrywrites=false"; 
     try {
         var oldProd = mongoose2.createConnection();
         await oldProd.openUri(url);
@@ -17,7 +17,7 @@ async function currentProdConnection(mongoose2) {
 }
 
 // for custum delay
-const delay = (delayInms) => {
+const delay = (delayInms) => {  
     console.log("DELAY>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
     return new Promise(resolve => setTimeout(resolve, delayInms));
 
