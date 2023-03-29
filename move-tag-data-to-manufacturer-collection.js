@@ -1,10 +1,11 @@
 const mongoose = require("mongoose");
 var mysql = require('mysql');
+const fetch = require("node-fetch");
 // for new production
 async function Connection(mongoose1) {
 
     try {
-        let url = 'mongodb://127.0.0.1:27017/smartcosmos_prod?authSource=admin';
+        let url = 'aaa';
         var newProd = mongoose1.createConnection();
         await newProd.openUri(url);
         newProd.on('error', console.error.bind(console, 'connection error:'));
@@ -18,10 +19,10 @@ async function Connection(mongoose1) {
 // creating mysql connection with new production 
 async function newProdMysqlConnection() {
     var conn = mysql.createConnection({
-        host: "localhost",
-        user: "root",
-        password: "rgbXYZ@9182",
-        database: "smartcosmos_prod"
+        host: "localhh",
+        user: "adsa",
+        password: "asda",
+        database: "asda"
     });
 
     conn.connect((err) => {
@@ -58,24 +59,41 @@ async function getTenantHashMap(mysqlConn) {
 async function batchInsert(connection, data) {
     try {
         console.log("Data Id for Insertion : ",data)
-        let checkBatch = await connection.collection('batches').find({ batchId: data?.batchId }).toArray();
+        let checkBatch = await connection.collection('batches').find({ batchId: data.batchId }).toArray();
         if (checkBatch.length == 0) {
             await connection.collection('batches').insertOne(data);
         }
         return true;
     }
     catch (error) {
-        console.log("Error in inserting batch id details :",data?.batchId, "Error is : ",error)
+        console.log("Error in inserting batch id details :",data.batchId, "Error is : ",error)
     }
 
 }
 
 async function batchDelete(connection, batchId) {
     try {
+        counter=0;
+        localCounter=0;
+        let tagIdArray=[];
+        chunkSize=1000;
         console.log("Batch Id for Deletion : ",batchId)
         let checkBatch = await connection.collection('unassignedtagsdatas').find({ batchId: batchId }).toArray();
         if (checkBatch.length >0) {
-            await connection.collection('unassignedtagsdatas').deleteMany({ batchId: batchId });
+            for (const data of checkBatch) {
+                  //  10<1000 && 5000 - 10 > 1000
+                if (localCounter<chunkSize) {
+                    tagIdArray.push(data.tagId);
+                    counter++;
+                    localCounter++
+                    continue;
+                }
+                tagIdArray.push(data.tagId);
+                await connection.collection('unassignedtagsdatas').deleteMany({ tagId: {$in:tagIdArray} });
+                localCounter=0;
+                console.log("Total Deleted Records => ",counter , "For batch Id => ",batchId);
+            }
+            //await connection.collection('unassignedtagsdatas').deleteMany({ batchId: batchId });
         }
         return true;
     }
@@ -163,7 +181,7 @@ async function moveData(connection, enablementdata) {
             for (const data of responseData) {
 
                 //check secureCount and standardCount 
-                if(data?.secureKey!==null)
+                if(data.secureKey!==null)
                 {
                     secureCount++;
                 }
@@ -175,7 +193,7 @@ async function moveData(connection, enablementdata) {
                 let status = 'Inactive';
                 let isActivated = false;
                 historyReferenceId = '',
-                historyReferenceId = data?.historyReferenceId
+                historyReferenceId = data.historyReferenceId
                 if (tagId == data.tagId) {
                     status = 'active';
                     isActivated = true;
@@ -188,8 +206,8 @@ async function moveData(connection, enablementdata) {
                     tenantName: tenantName,
                     userId: "migratedUserId",
                     userName: "migratedUserId",
-                    manufacturerName: data?.src,
-                    customerName: data?.customerName,
+                    manufacturerName: data.src,
+                    customerName: data.customerName,
                     fileName: "",
                     batchId: batchId,
                     tagId: data.tagId,
@@ -197,18 +215,18 @@ async function moveData(connection, enablementdata) {
                     tagType: "NFC Tags",
                     tagClass: "",
                     hash: "",
-                    secureKey: data?.secureKey,
+                    secureKey: data.secureKey,
                     inlayItemName: "",
                     inlayType: "",
                     vendorName: "",
-                    orderId: data?.orderId,
-                    orderDate: data?.orderDate,
-                    orderQuantity: data?.orderQuantity,
-                    orderQuantityUnit: data?.orderQuantityUnit,
-                    deliveryDate: data?.deliveryDate,
-                    deliveryItemName: data?.deliveryItemName,
-                    deliveryQuantity: data?.deliveryQuantity,
-                    deliveryQuantityUnit: data?.deliveryQuantityUnit,
+                    orderId: data.orderId,
+                    orderDate: data.orderDate,
+                    orderQuantity: data.orderQuantity,
+                    orderQuantityUnit: data.orderQuantityUnit,
+                    deliveryDate: data.deliveryDate,
+                    deliveryItemName: data.deliveryItemName,
+                    deliveryQuantity: data.deliveryQuantity,
+                    deliveryQuantityUnit: data.deliveryQuantityUnit,
                     historyReferenceId: historyReferenceId,
                     status: status,
                     isActivated: isActivated,
@@ -269,7 +287,7 @@ async function readTags(connection,mysqlConn)
         let tenantHasMap=await getTenantHashMap(mysqlConn);
         while(true)
         {
-            let responseData = await connection.collection('digitizedtags').find({}).sort({ createdAt: 1 }).allowDiskUse(true).skip(offset).limit(limit).toArray();
+            let responseData = await connection.collection('digitizedtags').find({diId:'E0040100A7C9E339'}).sort({ createdAt: 1 }).allowDiskUse(true).skip(offset).limit(limit).toArray();
             if(responseData.length==0)
             {
                 break;
@@ -469,4 +487,3 @@ async function main()
 
 // calling main 
 main();
-
