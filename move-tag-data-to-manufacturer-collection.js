@@ -275,8 +275,30 @@ async function readTags(connection,mysqlConn)
                 break;
             }
             for (const data of responseData) {
+                
+                // checking data in manufacturee collection first
+                let manuData = await connection.collection('manufacturertags').find({tagId:data.diId, status:'Inactive'}).toArray();
+                if(manuData.length>0)
+                {
+                    // calling function for updating manufacturer tags data
+                    let UpdateDataObj=
+                    {
+                        tenantId:data.tenantId,
+                        batchId:manuData[0].batchId,
+                        tenantName:tenantHasMap.get(data.tenantId),
+                        tagId:data.diId,
+                        siteId: data.siteId,
+                        processId: data.processId,
+                        upc: data.productUPC,
+                        status: data.status,
+                        type: 'secure',
+                        beforeStatus: '',
+                        operationTime: data.operationTime
+                    }
+                    updateManufacturerTagsData(connection,UpdateDataObj);
+                    continue;
+                }
                 // checking tagId in unassignedtagsdatas
-                 
                 let unassignedtagsdatas = await connection.collection('unassignedtagsdatas').find({tagId:data.diId}).toArray();
                 console.log("Founded Tags Response Tag ID: ",data.diId , "Response Count=>",unassignedtagsdatas.length)
                 if(unassignedtagsdatas.length>0)
@@ -291,7 +313,7 @@ async function readTags(connection,mysqlConn)
                         processId: data.processId,
                         upc: data.productUPC,
                         status: data.status,
-                        type: 'unsecure',
+                        type: 'secure',
                         beforeStatus: '',
                         operationTime: data.operationTime
                     }
@@ -312,6 +334,26 @@ async function readTags(connection,mysqlConn)
     }
 
 }
+
+// updating existing manufacturer tags data
+async function updateManufacturerTagsData(connection, data)
+{
+            try {      
+                    let update = {}
+                    const filter = { tagId: data.tagId };
+                    update.status = 'active'
+                    update.isActivated =true
+                    console.log("Updating Exiting Tag ID Data =>",filter, update)
+                    connection.collection("manufacturertags").findOneAndUpdate(filter, { $set: update });
+                    // sending request for updating enablements count at dashboard
+                    sendingEnablementDataToDashBoard(data);
+                }
+                catch(error)
+                {
+                console.log("Error in updating existing tag data => Tags ID ",data, "Error is ", error)
+                }
+}
+
 
 // updating status of all moved tags from digitized collection
 
@@ -373,7 +415,7 @@ async function sendingEnablementDataToDashBoard(data) {
             processId: data.processId,
             upc: data.productUPC,
             status: data.status,
-            type: 'unsecure',
+            type: 'secure',
             beforeStatus: '',
             operationTime: data.operationTime
         })
