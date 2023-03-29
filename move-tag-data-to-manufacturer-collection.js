@@ -177,7 +177,7 @@ async function moveData(connection, enablementdata) {
                 historyReferenceId = '',
                 historyReferenceId = data?.historyReferenceId
                 if (tagId == data.tagId) {
-                    status = 'Active';
+                    status = 'active';
                     isActivated = true;
                     // sending request for updating enablements count at dashboard
                    // sendingEnablementDataToDashBoard(enablementdata);
