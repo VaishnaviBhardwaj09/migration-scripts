@@ -180,7 +180,7 @@ async function moveData(connection, enablementdata) {
                     status = 'Active';
                     isActivated = true;
                     // sending request for updating enablements count at dashboard
-                    sendingEnablementDataToDashBoard(enablementdata);
+                   // sendingEnablementDataToDashBoard(enablementdata);
                 }
                 let dataObject =
                 {
@@ -346,7 +346,7 @@ async function updateManufacturerTagsData(connection, data)
                     console.log("Updating Exiting Tag ID Data =>",filter, update)
                     connection.collection("manufacturertags").findOneAndUpdate(filter, { $set: update });
                     // sending request for updating enablements count at dashboard
-                    sendingEnablementDataToDashBoard(data);
+                    //sendingEnablementDataToDashBoard(data);
                 }
                 catch(error)
                 {
