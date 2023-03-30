@@ -76,13 +76,22 @@ async function batchDelete(connection, batchId) {
         counter=0;
         localCounter=0;
         let tagIdArray=[];
-        chunkSize=1000;
+        chunkSize=500;
+        offset=0;
         console.log("Batch Id for Deletion : ",batchId)
-        let checkBatch = await connection.collection('unassignedtagsdatas').find({ batchId: batchId }).toArray();
-        if (checkBatch.length >0) {
-            for (const data of checkBatch) {
-                  //  10<1000 && 5000 - 10 > 1000
-                if (localCounter<chunkSize) {
+        while(true)
+        {
+        let checkBatch = await connection.collection('unassignedtagsdatas').find({ batchId: batchId }).sort({ createdAt: -1 }).skip(offset).limit(chunkSize).toArray();
+        if(checkBatch.length==0)
+        {
+           break;
+        }
+        if (checkBatch.length >0) 
+        {
+            
+         for (const data of checkBatch) 
+            {
+                if (tagIdArray.length < chunkSize && checkBatch.length - localCounter > chunkSize) {
                     tagIdArray.push(data.tagId);
                     counter++;
                     localCounter++
@@ -90,10 +99,15 @@ async function batchDelete(connection, batchId) {
                 }
                 tagIdArray.push(data.tagId);
                 await connection.collection('unassignedtagsdatas').deleteMany({ tagId: {$in:tagIdArray} });
-                localCounter=0;
-                console.log("Total Deleted Records => ",counter , "For batch Id => ",batchId);
+                counter++;
+                localCounter++
+                await delay(1000);
             }
+            console.log("Total Deleted Records => ",counter , "For batch Id => ",batchId);
+            offset=offset+checkBatch.length;
+            await delay(1000);
             //await connection.collection('unassignedtagsdatas').deleteMany({ batchId: batchId });
+        }
         }
         return true;
     }
@@ -420,7 +434,7 @@ async function updatingStatus(connection)
 // updating tags info for Enablements counts in header 
 async function sendingEnablementDataToDashBoard(data) {
     try{
-    await fetch('https://portal.lifecycles.io/api/v1/report/enablement', {
+    await fetch('https://load.lifecycles.io/api/v1/report/enablement', {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
@@ -449,7 +463,7 @@ async function updateUnusedHeaderCount(data)
 {
     try
     {    
-        await fetch('https://portal.lifecycles.io/api/v1/report/tag', {
+        await fetch('https://load.lifecycles.io/api/v1/report/tag', {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
