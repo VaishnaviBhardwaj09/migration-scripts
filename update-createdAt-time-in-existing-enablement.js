@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 // creating connection from current production
 async function currentProdConnection(mongoose2) {
 
-    let url = "mongodb://solution-dev-qamongo:HbylJkfMu8lwRwlAHOWqID9SY256BEnBO9Ulj0awumaJ6VETOOr6cAXu2Od6WQjg5QwOQEzI7ZerACDbyvkF0w==@solution-dev-qamongo.mongo.cosmos.azure.com:10255/smartcosmos_qa?ssl=true&retrywrites=false"; 
+   let url = 'mongodb://sc-loadtesting-solution-cosmosdb:aoiPpe4zDFepOMZ0GJKyPhZrREXSQaKUzPrcwWaSoLQOoVNJ07aDQweNP3q5TE0keellXpqJSfz9ACDbtRxtww==@sc-loadtesting-solution-cosmosdb.mongo.cosmos.azure.com:10255/smartcosmos?ssl=true&replicaSet=globaldb&retrywrites=false';    
     try {
         var oldProd = mongoose2.createConnection();
         await oldProd.openUri(url);
@@ -35,7 +35,7 @@ async function readAndUpdate(connection) {
     let to = new Date('2022-03-21');
     try {   //  '42ed8a64-53c1-4b49-91d3-7bc008336180'
         // first one is authentify and another one is secretlab
-        let tenantArray = ['cff6c706-9b45-45ff-ba81-614b470bdb38','42ed8a64-53c1-4b49-91d3-7bc008336180'];
+        let tenantArray = ['c2107b22-b02e-45a7-b126-89b65b054ef6','80a2b0ea-2915-42d1-9f7d-6cc88d6fa269'];
         
         for (const tenantId of tenantArray) {
             console.log("Tenant ID", tenantId);
@@ -63,7 +63,7 @@ async function readAndUpdate(connection) {
                     
                 }
                 offset = offset + responseData.length;
-                console.log("Currently Running Tenant : ",tenantId, "Current Lenght", responseData.length, "Total Inseted Record=>",counter);
+                console.log("Currently Running Tenant : ",tenantId, "Current Lenght", responseData.length, "Total Updated Records=>",counter);
             }
         }
     }

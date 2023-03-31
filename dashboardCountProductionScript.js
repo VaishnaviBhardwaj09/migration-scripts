@@ -7,9 +7,9 @@ console.log("Started the Script>>>>>>>>>>>>>>>>>>")
 
 // getting data from server mysql
 var conn = mysql.createConnection({
-    host: "sc-prod-database.mysql.database.azure.com",
+    host: "loadtesting.mysql.database.azure.com",
     user: "bksfipnb",
-    password: " ",
+    password: "A4Yu5BskyaLl3BFaxGJu8Shwf2",
     database: "smartcosmos"
 });
 
@@ -64,8 +64,9 @@ async function getProcessHashMap(connection, tenantId) {
 
 //var mongoDb = mongoose.createConnection("mongodb://solution-dev-qamongo:HbylJkfMu8lwRwlAHOWqID9SY256BEnBO9Ulj0awumaJ6VETOOr6cAXu2Od6WQjg5QwOQEzI7ZerACDbyvkF0w==@solution-dev-qamongo.mongo.cosmos.azure.com:10255/smartcosmos_qa?ssl=true&retrywrites=false", { useNewUrlParser: true, useUnifiedTopology: true });
 
-var mongoDb = mongoose.createConnection('mongodb://sc-production-solution-cosmosdb:Ez36mJ2V6phUbj9kgSyJPQ0ycQuSbLx0wmVUMQZNqRVNbUlywQHPP01qEKEdNQddWHsxPXxiDirpACDbBFp3YA==@sc-production-solution-cosmosdb.mongo.cosmos.azure.com:10255/smartcosmos?ssl=true&replicaSet=globaldb&retrywrites=false');
-
+//var mongoDb = mongoose.createConnection('mongodb://sc-production-solution-cosmosdb:Ez36mJ2V6phUbj9kgSyJPQ0ycQuSbLx0wmVUMQZNqRVNbUlywQHPP01qEKEdNQddWHsxPXxiDirpACDbBFp3YA==@sc-production-solution-cosmosdb.mongo.cosmos.azure.com:10255/smartcosmos?ssl=true&replicaSet=globaldb&retrywrites=false');
+// load credentials
+var mongoDb=mongoose.createConnection('mongodb://sc-loadtesting-solution-cosmosdb:aoiPpe4zDFepOMZ0GJKyPhZrREXSQaKUzPrcwWaSoLQOoVNJ07aDQweNP3q5TE0keellXpqJSfz9ACDbtRxtww==@sc-loadtesting-solution-cosmosdb.mongo.cosmos.azure.com:10255/smartcosmos?ssl=true&replicaSet=globaldb&retrywrites=false');
 let enablementsData = {}
 let enablementByProcesses = {}
 let enablementByProducts = {}
@@ -87,7 +88,7 @@ function getYYMMDDdate(tempDate) {
 function getMonth(tempDate) {
     const mm = tempDate.split("-");
     let month = parseInt(mm[1]);
-    return month;
+    return month-1;
 }
 async function prepairEnablementsData(datas) {
     for (const data of datas) {
@@ -215,12 +216,10 @@ async function prepairEnablementByProductData(datas, productHashMap) {
 
 mongoDb.once('open', async function () {
     //let tenantIdArray =['ddfbeaf9-40d0-4980-9ef1-a9c72ab44493','cff6c706-9b45-45ff-ba81-614b470bdb38','b6996074-9aa8-41d7-8a50-32c5f71c6409','8a12fdbf-bc44-4722-9695-f390a305d09d']
-    let tenantIdArray = ['c2107b22-b02e-45a7-b126-89b65b054ef6',
-    '80a2b0ea-2915-42d1-9f7d-6cc88d6fa269',
-    '8dd5c1c6-def0-42b5-a450-3630d763fe92',
-    '213ec29c-de8d-465f-8e1f-61d65246726c',
-    'f9452900-f90a-40d5-b2a0-a89577774ea2']
-    for (const tenantId of tenantIdArray) {
+   // let tenantIdArray = ['c2107b22-b02e-45a7-b126-89b65b054ef6','80a2b0ea-2915-42d1-9f7d-6cc88d6fa269','8dd5c1c6-def0-42b5-a450-3630d763fe92','213ec29c-de8d-465f-8e1f-61d65246726c','f9452900-f90a-40d5-b2a0-a89577774ea2']
+      let tenantIdArray=['80a2b0ea-2915-42d1-9f7d-6cc88d6fa269','c2107b22-b02e-45a7-b126-89b65b054ef6'];
+
+	for (const tenantId of tenantIdArray) {
 
         let limit = 200
         let count = 0

@@ -5,8 +5,8 @@ const fetch = require("node-fetch");
 async function Connection(mongoose1) {
 
     try {
-        let url = 'aaa';
-        var newProd = mongoose1.createConnection();
+       let url = 'mongodb://sc-loadtesting-solution-cosmosdb:aoiPpe4zDFepOMZ0GJKyPhZrREXSQaKUzPrcwWaSoLQOoVNJ07aDQweNP3q5TE0keellXpqJSfz9ACDbtRxtww==@sc-loadtesting-solution-cosmosdb.mongo.cosmos.azure.com:10255/smartcosmos?ssl=true&replicaSet=globaldb&retrywrites=false';
+      	 var newProd = mongoose1.createConnection();
         await newProd.openUri(url);
         newProd.on('error', console.error.bind(console, 'connection error:'));
         return newProd;
@@ -19,10 +19,10 @@ async function Connection(mongoose1) {
 // creating mysql connection with new production 
 async function newProdMysqlConnection() {
     var conn = mysql.createConnection({
-        host: "localhh",
-        user: "adsa",
-        password: "asda",
-        database: "asda"
+        host: "loadtesting.mysql.database.azure.com",
+        user: "bksfipnb",
+        password: "A4Yu5BskyaLl3BFaxGJu8Shwf2",
+        database: "smartcosmos"     
     });
 
     conn.connect((err) => {
@@ -63,7 +63,7 @@ async function batchInsert(connection, data) {
         if (checkBatch.length == 0) {
             await connection.collection('batches').insertOne(data);
         }
-        return true;
+        return true; 
     }
     catch (error) {
         console.log("Error in inserting batch id details :",data.batchId, "Error is : ",error)
@@ -73,43 +73,49 @@ async function batchInsert(connection, data) {
 
 async function batchDelete(connection, batchId) {
     try {
-        counter=0;
-        localCounter=0;
+        let  counter=0;
         let tagIdArray=[];
-        chunkSize=500;
-        offset=0;
+        let chunkSize=200;
+        let offset=0;
         console.log("Batch Id for Deletion : ",batchId)
-        while(true)
-        {
-        let checkBatch = await connection.collection('unassignedtagsdatas').find({ batchId: batchId }).sort({ createdAt: -1 }).skip(offset).limit(chunkSize).toArray();
-        if(checkBatch.length==0)
+       while(true)
+       {
+        let  localCounter=0;
+        let checkBatch = await connection.collection('unassignedtagsdatas').find({ batchId: batchId }).sort({ createdAt: 1 }).limit(2000).toArray();
+       console.log("Data Found in delete function query =>",checkBatch.length, "With Offset =>", offset);
+	if(checkBatch.length==0)
         {
            break;
+	
         }
         if (checkBatch.length >0) 
         {
-            
+            	
          for (const data of checkBatch) 
             {
-                if (tagIdArray.length < chunkSize && checkBatch.length - localCounter > chunkSize) {
+                if (tagIdArray.length < chunkSize && checkBatch.length - localCounter > chunkSize)
+		    {
                     tagIdArray.push(data.tagId);
                     counter++;
                     localCounter++
                     continue;
-                }
+                    }
                 tagIdArray.push(data.tagId);
+		console.log("TagIds Array=>",tagIdArray.length);    
                 await connection.collection('unassignedtagsdatas').deleteMany({ tagId: {$in:tagIdArray} });
                 counter++;
                 localCounter++
-                await delay(1000);
-            }
+               tagIdArray=[];
+		await delay(1000);
+             console.log("Total Records Founds",checkBatch.length, "Total Deleted Records => ",counter, "For BatchId=> ",batchId);
+	    }
             console.log("Total Deleted Records => ",counter , "For batch Id => ",batchId);
             offset=offset+checkBatch.length;
             await delay(1000);
             //await connection.collection('unassignedtagsdatas').deleteMany({ batchId: batchId });
         }
-        }
-        return true;
+       }
+      //  return true;
     }
     catch (error) {
         console.log("Error in deleting batch data for batchId",batchId, "Error is : ",error)
