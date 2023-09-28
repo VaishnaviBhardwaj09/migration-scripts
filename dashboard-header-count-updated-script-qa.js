@@ -12,7 +12,7 @@ var conn = mysql.createConnection({
     host: "localhost",
     user: "root",
     password: "rgbXYZ@9182",
-    database: "smartcosmos_prod"
+    database: "smartcosmos_prod1"
 });
 
 conn.connect(function (err) {
@@ -56,6 +56,7 @@ async function getProcessHashMap(connection, tenantId) {
                         processMap.set(data.id, data.name);
                     }
                 }
+                console.log(processMap)
                 resolve(processMap);
             }
 
@@ -64,12 +65,11 @@ async function getProcessHashMap(connection, tenantId) {
     )
 }
 
-mongoose.connect('mongodb://localhost:27017/smartcosmos_prod');
+mongoose.connect('mongodb://localhost:27017/migration');
 var mongoDb = mongoose.connection
 
 //var mongoDb = mongoose.createConnection("mongodb://solution-dev-qamongo:HbylJkfMu8lwRwlAHOWqID9SY256BEnBO9Ulj0awumaJ6VETOOr6cAXu2Od6WQjg5QwOQEzI7ZerACDbyvkF0w==@solution-dev-qamongo.mongo.cosmos.azure.com:10255/smartcosmos_qa?ssl=true&retrywrites=false", { useNewUrlParser: true, useUnifiedTopology: true });
-
-//var mongoDb = mongoose.createConnection('mongodb://sc-production-solution-cosmosdb:Ez36mJ2V6phUbj9kgSyJPQ0ycQuSbLx0wmVUMQZNqRVNbUlywQHPP01qEKEdNQddWHsxPXxiDirpACDbBFp3YA==@sc-production-solution-cosmosdb.mongo.cosmos.azure.com:10255/smartcosmos?ssl=true&replicaSet=globaldb&retrywrites=false');
+// var mongoDb = mongoose.createConnection('mongodb://sc-production-solution-cosmosdb:Ez36mJ2V6phUbj9kgSyJPQ0ycQuSbLx0wmVUMQZNqRVNbUlywQHPP01qEKEdNQddWHsxPXxiDirpACDbBFp3YA==@sc-production-solution-cosmosdb.mongo.cosmos.azure.com:10255/smartcosmos?ssl=true&replicaSet=globaldb&retrywrites=false');
 
 let enablementsData = {}
 let enablementByProcesses = {}
@@ -146,6 +146,7 @@ async function prepairEnablementsData(datas,processHashMap,productHashMap) {
 }
 
 async function prepairEnablementByProcessData(datas, processHashMap,productHashMap) {
+    console.log(datas)
     for (const data of datas) {
         let date = getYYMMDDdate(JSON.stringify(data.createdAt));
         let month = getMonth(date);
@@ -256,14 +257,14 @@ mongoDb.once('open', async function () {
     let tenantIdArray = ['c2107b22-b02e-45a7-b126-89b65b054ef6']
     for (const tenantId of tenantIdArray) {
 
-        let limit = 200
+        let limit = 500
         let count = 0
         let productHashMap = await getProductHashMap(conn, tenantId);
         let processHashMap = await getProcessHashMap(conn, tenantId);
-        console.log("productHashMap=>",productHashMap)
+        console.log("productHashMap=>",getProcessHashMap)
         while (true) {
-            console.log("New Count", count)
-            let tenantData = await mongoDb.collection('digitizedtags').find({ "tenantId": tenantId  }).sort({ operationTime: 1 }).skip(count).limit(limit).toArray();
+            // console.log("New Count", count)
+            let tenantData = await mongoDb.collection('authentify_prod').find({ "tenantId": tenantId , processId:"22174a41-fa5d-4b83-b861-c915c4c50f6f" }).sort({ operationTime: 1 }).skip(count).limit(limit).toArray();
             if (tenantData.length === 0) {
                 await insertIntoMysqlDB(conn,enablementsData, enablementByProcesses, enablementByProducts);
                 enablementsData = []
@@ -273,9 +274,9 @@ mongoDb.once('open', async function () {
             }
             console.log("Tenant Data length", tenantData.length)
 
-            //await prepairEnablementsData(tenantData,processHashMap,productHashMap);
-            //await prepairEnablementByProcessData(tenantData, processHashMap,productHashMap);
-            await prepairEnablementByProductData(tenantData, processHashMap,productHashMap);
+            // await prepairEnablementsData(tenantData,processHashMap,productHashMap);
+            await prepairEnablementByProcessData(tenantData, processHashMap,productHashMap);
+            // await prepairEnablementByProductData(tenantData, processHashMap,productHashMap);
             console.log("Update Data Array For Enablements => ", Object.keys(enablementsData).length)
             console.log("Update Data Array For enablementByProcesses => ", Object.keys(enablementByProcesses).length)
             console.log("Update Data Array For enablementByProducts => ", Object.keys(enablementByProducts).length)
@@ -289,115 +290,278 @@ mongoDb.once('open', async function () {
 
 
 
-async function insertIntoMysqlDB(connection,enablementsData, enablementByProcesses, enablementByProducts) {
+// async function insertIntoMysqlDB(connection,enablementsData, enablementByProcesses, enablementByProducts) {
+
+//     console.log(enablementByProcesses)
 
 
-    console.log("enablements==>",Object.keys(enablementsData).length,"enablementByProcesses=>",Object.keys(enablementByProcesses).length,"enablementByProducts=>",Object.keys(enablementByProducts).length)
-    // insert into enablements 
-    //creating  2000 record chunks and bulk insert into database
+//     // console.log("enablements==>",Object.keys(enablementsData).length,"enablementByProcesses=>",Object.keys(enablementByProcesses).length,"enablementByProducts=>",Object.keys(enablementByProducts).length)
+//     // // insert into enablements 
+//     // //creating  2000 record chunks and bulk insert into database
+//     // let insertLimit = 200;
+//     // let i = 1;
+//     // let sql = 'insert into enablements values ';
+//     // let insertCounter=0;
+//     // console.log("Enablements to be inserted :",Object.keys(enablementsData).length)
+//     // for (const index in enablementsData) {
+//     //     let data=enablementsData[index];
+        
+//     //     let localTeamData=`'`+uuidv4()+`',`+`'`+data.tenantId+`',`+`'`+data.siteId+`',`+`0`+`,`+`0`+`,`+`'`+data.date+`',`+`'`+data.month+`',`+`'`+data.createdAt+`',`+ `'`+data.createdAt+`',`+`null`+`,`+data.count+`,` +data.deEnabledCount;   
+//     //     if (i < insertLimit && insertCounter<Object.keys(enablementsData).length-1){
+//     //         sql += `(`+ localTeamData+` ), `
+//     //         i++;
+//     //         insertCounter++;
+//     //         continue;
+//     //     }
+//     //     sql += `(`+ localTeamData +`)`;
+//     //     i++;
+//     //     insertCounter++;
+//     //     connection.query(sql, function (err, result) {
+//     //         if (err) {
+//     //             console.log("Error in query ", err, sql)
+
+//     //         }
+//     //         else
+//     //         {
+//     //             console.log("Enablements Successfully Inserted :",i, "Total Inserted : ", insertCounter)
+//     //         }
+//     //     })
+//     //     await delay(1000);
+//     //     sql = 'insert into enablements values ';
+//     //     i = 1;
+        
+//     // }
+
+
+//     // // insert into enablementByProcess
+
+//     //  i = 1;
+//     //  sql= 'insert into enablementByProcesses values ';
+//     // insertCounter=0;
+//     // console.log("enablementByProcesses to be inserted :",Object.keys(enablementByProcesses).length)
+//     // for (const index in enablementByProcesses) {
+//     //     let data=enablementByProcesses[index];
+//     //     let localTeamData=`'`+uuidv4()+`',`+`'`+data.tenantId+`',`+`'`+data.siteId+`',`+`'`+data.processId+`',`+`'`+data.processName+`',`+`'`+data.count+`',`+`'`+data.date+`',`+`'`+data.month+`',`+`'`+data.createdAt+`',`+ `'`+data.createdAt+`',`+`null`   
+       
+//     //     if (i < insertLimit && insertCounter<Object.keys(enablementByProcesses).length-1){
+//     //         sql += `( ${localTeamData} ), `
+//     //         i++;
+//     //         insertCounter++;
+//     //         continue;
+//     //     }
+//     //     sql += `( ${localTeamData} )`;
+//     //     i++;
+//     //     insertCounter++;
+//     //     connection.query(sql, function (err, result) {
+//     //         if (err) {
+//     //             console.log("Error in query ", err, sql)
+
+//     //         }
+//     //         else
+//     //         {
+//     //             console.log("Enablement By Processes Successfully Inserted :",i, "Total Inserted : ", insertCounter)
+//     //         }
+//     //     })
+//     //     await delay(1000);
+//     //      sql = 'insert into enablementByProcesses values ';
+//     //     i = 1;
+
+//     // }
+//     // // insert into enablementByProducts       
+//     // i = 1;
+//     // insertCounter=0;
+//     // sql = 'insert into enablementByProducts values ';
+//     // console.log("enablement By Products to be inserted :",Object.keys(enablementByProducts).length)
+//     // for (const index in enablementByProducts) {
+//     //     let data=enablementByProducts[index];
+//     //     let localTeamData=`'`+uuidv4()+`',`+`'`+data.tenantId+`',`+`'`+data.siteId+`',`+`'`+data.upc+`',`+`'`+data.productName+`',`+`'`+data.count+`',`+`'`+data.date+`',`+`'`+data.month+`',`+`'`+data.createdAt+`',`+ `'`+data.createdAt+`',`+`null`   
+       
+//     //     if (i < insertLimit && insertCounter<Object.keys(enablementByProducts).length-1){
+//     //         sql += `( ${localTeamData} ), `
+//     //         i++;
+//     //         insertCounter++;
+//     //         continue;
+//     //     }
+//     //     sql += `( ${localTeamData} )`;
+//     //     i++;
+//     //     insertCounter++;
+//     //     connection.query(sql, function (err, result) {
+//     //         if (err) {
+//     //             console.log("Error in query ", err, sql)
+
+//     //         }
+//     //         else
+//     //         {
+//     //             console.log("Enablement By Products Successfully Inserted :",i, "Total Inserted : ", insertCounter)
+//     //         }
+//     //     })
+//     //     await delay(1000);
+//     //     sql= 'insert into enablementByProducts values ';
+//     //     i = 1;
+
+//     // }
+// }
+
+// async function insertIntoMysqlDB(connection, enablementsData,enablementByProcesses,enablementByProducts) {
+//     console.log("enablementByProcesses to be inserted/updated:", Object.keys(enablementByProcesses).length);
+
+//     // Loop through each entry in enablementByProcesses
+//     for (const index in enablementByProcesses) {
+//         let data = enablementByProcesses[index];
+
+//         // Check if the record exists
+//         const checkSql = `SELECT * FROM enablementByProcesses ` +
+//             `WHERE tenantId='${data.tenantId}' AND processId='${data.processId}' AND date='${data.date}'`;
+
+//         connection.query(checkSql, function (err, results) {
+//             if (err) {
+//                 console.log("Error in query ", err, checkSql);
+//             } else {
+//                 if (results.length > 0) {
+//                     // Record exists, update count
+//                     const existingCount = results[0].count;
+//                     const newCount = existingCount + data.count;
+
+//                     const updateSql = `UPDATE enablementByProcesses ` +
+//                         `SET count=${newCount} WHERE tenantId='${data.tenantId}' AND processId='${data.processId}' AND date='${data.date}'`;
+
+//                     connection.query(updateSql, function (updateErr, updateResult) {
+//                         if (updateErr) {
+//                             console.log("Error in query ", updateErr, updateSql);
+//                         } else {
+//                             console.log("Enablement By Processes Successfully Updated:", index);
+//                         }
+//                     });
+//                 } else {
+//                     // Record doesn't exist, insert new record
+//                     const insertSql = `INSERT INTO enablementByProcesses VALUES ` +
+//                         `('${uuidv4()}','${data.tenantId}','${data.siteId}','${data.processId}','${data.processName}',` +
+//                         `'${data.count}','${data.date}','${data.month}','${data.createdAt}','${data.createdAt}',null)`;
+
+//                     connection.query(insertSql, function (insertErr, insertResult) {
+//                         if (insertErr) {
+//                             console.log("Error in query ", insertErr, insertSql);
+//                         } else {
+//                             console.log("Enablement By Processes Successfully Inserted:", index);
+//                         }
+//                     });
+//                 }
+//             }
+//         });
+
+//         await delay(1000);
+//     }
+
+//     // ... (rest of the function)
+// }
+
+async function insertIntoMysqlDB(connection, enablementsData, enablementByProcesses, enablementByProducts) {
+    console.log(enablementByProcesses);
+    
+    console.log("enablements==>", Object.keys(enablementsData).length, "enablementByProcesses=>", Object.keys(enablementByProcesses).length, "enablementByProducts=>", Object.keys(enablementByProducts).length);
+
     let insertLimit = 200;
-    let i = 1;
-    let sql = 'insert into enablements values ';
-    let insertCounter=0;
-    console.log("Enablements to be inserted :",Object.keys(enablementsData).length)
+    let insertCounter = 0;
+
+    // Insert into enablements
+    console.log("Enablements to be inserted/updated:", Object.keys(enablementsData).length);
     for (const index in enablementsData) {
-        let data=enablementsData[index];
-        
-        let localTeamData=`'`+uuidv4()+`',`+`'`+data.tenantId+`',`+`'`+data.siteId+`',`+`0`+`,`+`0`+`,`+`'`+data.date+`',`+`'`+data.month+`',`+`'`+data.createdAt+`',`+ `'`+data.createdAt+`',`+`null`+`,`+data.count+`,` +data.deEnabledCount;   
-        if (i < insertLimit && insertCounter<Object.keys(enablementsData).length-1){
-            sql += `(`+ localTeamData+` ), `
-            i++;
-            insertCounter++;
-            continue;
-        }
-        sql += `(`+ localTeamData +`)`;
-        i++;
-        insertCounter++;
-        connection.query(sql, function (err, result) {
-            if (err) {
-                console.log("Error in query ", err, sql)
+        let data = enablementsData[index];
 
-            }
-            else
-            {
-                console.log("Enablements Successfully Inserted :",i, "Total Inserted : ", insertCounter)
-            }
-        })
+        const checkSql = `SELECT * FROM enablements WHERE tenantId='${data.tenantId}' AND date='${data.date}'`;
+        const existingRecords = await queryDatabase(connection, checkSql);
+        console.log("existingRecords",existingRecords)
+
+        if (existingRecords.length > 0) {
+            const existingCount = existingRecords[0].count || existingRecords[0].unSecureEnabledCount;
+            const newCount = existingCount + data.count;
+
+            const updateSql = `UPDATE enablements SET unSecureEnabledCount=${newCount} WHERE tenantId='${data.tenantId}' AND date='${data.date}'`;
+            await queryDatabase(connection, updateSql);
+            console.log("Enablements Successfully Updated:", index);
+        } else {
+            const localTeamData = `'${uuidv4()}','${data.tenantId}','${data.siteId}',0,0,'${data.date}','${data.month}','${data.createdAt}','${data.createdAt}',null,${data.count},${data.deEnabledCount}`;
+            await insertRecord(connection, 'enablements', localTeamData);
+            console.log("Enablements Successfully Inserted:", index);
+        }
         await delay(1000);
-        sql = 'insert into enablements values ';
-        i = 1;
-        
     }
 
-
-    // insert into enablementByProcess
-
-     i = 1;
-     sql= 'insert into enablementByProcesses values ';
-    insertCounter=0;
-    console.log("enablementByProcesses to be inserted :",Object.keys(enablementByProcesses).length)
+    // Insert into enablementByProcesses
+    console.log("enablementByProcesses to be inserted/updated:", Object.keys(enablementByProcesses).length);
     for (const index in enablementByProcesses) {
-        let data=enablementByProcesses[index];
-        let localTeamData=`'`+uuidv4()+`',`+`'`+data.tenantId+`',`+`'`+data.siteId+`',`+`'`+data.processId+`',`+`'`+data.processName+`',`+`'`+data.count+`',`+`'`+data.date+`',`+`'`+data.month+`',`+`'`+data.createdAt+`',`+ `'`+data.createdAt+`',`+`null`   
-       
-        if (i < insertLimit && insertCounter<Object.keys(enablementByProcesses).length-1){
-            sql += `( ${localTeamData} ), `
-            i++;
-            insertCounter++;
-            continue;
+        let data = enablementByProcesses[index];
+
+        const checkSql = `SELECT * FROM enablementbyprocesses WHERE tenantId='${data.tenantId}' AND date='${data.date}' AND processId='${data.processId}'`;
+        const existingRecords = await queryDatabase(connection, checkSql);
+
+        if (existingRecords.length > 0) {
+            const existingCount = existingRecords[0].count;
+            const newCount = existingCount + data.count;
+
+            const updateSql = `UPDATE enablementbyprocesses SET count=${newCount} WHERE tenantId='${data.tenantId}' AND date='${data.date}' AND processId='${data.processId}'`;
+            await queryDatabase(connection, updateSql);
+            console.log("Enablement By Processes Successfully Updated:", index);
+        } else {
+            const localTeamData = `'${uuidv4()}','${data.tenantId}','${data.siteId}','${data.processId}','${data.processName}','${data.count}','${data.date}','${data.month}','${data.createdAt}','${data.createdAt}',null`;
+            await insertRecord(connection, 'enablementbyprocesses', localTeamData);
+            console.log("Enablement By Processes Successfully Inserted:", index);
         }
-        sql += `( ${localTeamData} )`;
-        i++;
-        insertCounter++;
-        connection.query(sql, function (err, result) {
-            if (err) {
-                console.log("Error in query ", err, sql)
-
-            }
-            else
-            {
-                console.log("Enablement By Processes Successfully Inserted :",i, "Total Inserted : ", insertCounter)
-            }
-        })
         await delay(1000);
-         sql = 'insert into enablementByProcesses values ';
-        i = 1;
-
     }
-    // insert into enablementByProducts       
-    i = 1;
-    insertCounter=0;
-    sql = 'insert into enablementByProducts values ';
-    console.log("enablement By Products to be inserted :",Object.keys(enablementByProducts).length)
+
+    // Insert into enablementByProducts
+    console.log("enablement By Products to be inserted/updated:", Object.keys(enablementByProducts).length);
     for (const index in enablementByProducts) {
-        let data=enablementByProducts[index];
-        let localTeamData=`'`+uuidv4()+`',`+`'`+data.tenantId+`',`+`'`+data.siteId+`',`+`'`+data.upc+`',`+`'`+data.productName+`',`+`'`+data.count+`',`+`'`+data.date+`',`+`'`+data.month+`',`+`'`+data.createdAt+`',`+ `'`+data.createdAt+`',`+`null`   
-       
-        if (i < insertLimit && insertCounter<Object.keys(enablementByProducts).length-1){
-            sql += `( ${localTeamData} ), `
-            i++;
-            insertCounter++;
-            continue;
+        let data = enablementByProducts[index];
+
+        const checkSql = `SELECT * FROM enablementbyproducts WHERE tenantId='${data.tenantId}' AND date='${data.date}' AND upc='${data.upc}'`;
+        const existingRecords = await queryDatabase(connection, checkSql);
+
+        if (existingRecords.length > 0) {
+            const existingCount = existingRecords[0].count;
+            const newCount = existingCount + data.count;
+
+            const updateSql = `UPDATE enablementbyproducts SET count=${newCount} WHERE tenantId='${data.tenantId}' AND date='${data.date}' AND upc='${data.upc}'`;
+            await queryDatabase(connection, updateSql);
+            console.log("Enablement By Products Successfully Updated:", index);
+        } else {
+            const localTeamData = `'${uuidv4()}','${data.tenantId}','${data.siteId}','${data.upc}','${data.productName}','${data.count}','${data.date}','${data.month}','${data.createdAt}','${data.createdAt}',null`;
+            await insertRecord(connection, 'enablementbyproducts', localTeamData);
+            console.log("Enablement By Products Successfully Inserted:", index);
         }
-        sql += `( ${localTeamData} )`;
-        i++;
-        insertCounter++;
-        connection.query(sql, function (err, result) {
-            if (err) {
-                console.log("Error in query ", err, sql)
-
-            }
-            else
-            {
-                console.log("Enablement By Products Successfully Inserted :",i, "Total Inserted : ", insertCounter)
-            }
-        })
         await delay(1000);
-        sql= 'insert into enablementByProducts values ';
-        i = 1;
-
     }
 }
+
+async function queryDatabase(connection, sql) {
+    return new Promise((resolve, reject) => {
+        connection.query(sql, function (err, results) {
+            if (err) {
+                console.log("Error in query ", err, sql);
+                reject(err);
+            } else {
+                resolve(results);
+            }
+        });
+    });
+}
+
+async function insertRecord(connection, table, data) {
+    return new Promise((resolve, reject) => {
+        const sql = `INSERT INTO ${table} VALUES (${data})`;
+        connection.query(sql, function (err, result) {
+            if (err) {
+                console.log("Error in query ", err, sql);
+                reject(err);
+            } else {
+                resolve(result);
+            }
+        });
+    });
+}
+
+
 
 
 const delay = (delayInms) => {
